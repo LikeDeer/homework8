@@ -14,6 +14,8 @@
 #include<stdlib.h>
 /* 필요한 헤더파일 추가 */
 
+#define IS_EMPTY(h) ((h)->rlink) == (h)		// 공백 리스트인지 확인하는 매크로 함수
+
 typedef struct Node {
 	int key;
 	struct Node* llink;
@@ -117,15 +119,28 @@ int initialize(listNode** h) {
 		freeList(*h);
 
 	/* headNode에 대한 메모리를 할당하여 리턴 */
-	*h = (listNode*)malloc(sizeof(listNode));
-	(*h)->rlink = *h;
-	(*h)->llink = *h;
-	(*h)->key = -9999;
-	return 1;
-}
+	*h = (listNode*)malloc(sizeof(listNode));	// 실질적인 데이터는 갖지않는 헤드노드
+	(*h)->rlink = *h;							//  이전까지의 선형 리스트에서는
+	(*h)->llink = *h;							//  헤드노드라는 이름의 포인터로 첫 노드부터 이용했지만
+	(*h)->key = -9999;							//  원형 리스트에서는
+	return 1;									//  첫 노드가 될 수 있는 후보가, 정방향과 역방향이 구분되어, 두 개다.
+}												//  때문에 헤드노드도 쌍방향의 원래 노드 형태를 빌리되,
+												//  그것은 데이터는 갖지 않는다.
+												//  주의할 것으로, 앞으로 첫 노드는 h가 아닌 h->rlink
 
 /* 메모리 해제 */
 int freeList(listNode* h){
+	if (IsInitialized(h)) return 1;
+
+	listNode *goodBye = NULL;
+
+	h->llink->rlink = NULL;			// circular-linked-list의 장점에 대한 개인적 의견:
+									//   마지막 노드를 먼저 건드려 놓을 수 있음.
+	while (h) {						// 마지막 노드까지 삭제되고
+		goodBye = h;				//   h가 (이전)마지막 노드의 rlink, 즉 NULL을 이어받으면 종료.
+		h = h->rlink;
+		free(goodBye);
+	}
 
 	return 0;
 }
@@ -174,8 +189,23 @@ void printList(listNode* h) {
  * list에 key에 대한 노드하나를 추가
  */
 int insertLast(listNode* h, int key) {
+	/* 전처리 */
+	if (IsInitialized(h)) {
+		printf("Please initialize first and try again.\n");
+		return 1;
+	}
 
-	return 1;
+	listNode* newNode = (listNode*) malloc(sizeof(listNode));
+	newNode->key = key;
+
+	newNode->rlink = h;
+	newNode->llink = h->llink;
+	h->llink->rlink = newNode;
+	h->llink = newNode;
+
+
+	// return 1;
+	return 0;
 }
 
 
@@ -183,9 +213,25 @@ int insertLast(listNode* h, int key) {
  * list의 마지막 노드 삭제
  */
 int deleteLast(listNode* h) {
+	/* 전처리 */
+	if (IsInitialized(h)) {
+		printf("Please initialize first and try again.\n");
+		return 1;
+	}
+
+	/* 공백 리스트라면, 지울 것 없음 */
+	if (IS_EMPTY(h)) {
+		printf("Nothing to delete.\n");
+		return 1;
+	}
+
+	h->llink = h->llink->llink;
+	free(h->llink->rlink);
+	h->llink->rlink = h;
 
 
-	return 1;
+	// return 1;
+	return 0;
 }
 
 
@@ -193,15 +239,46 @@ int deleteLast(listNode* h) {
  * list 처음에 key에 대한 노드하나를 추가
  */
 int insertFirst(listNode* h, int key) {
+	/* 전처리 */
+	if (IsInitialized(h)) {
+		printf("Please initialize first and try again.\n");
+		return 1;
+	}
+
+	listNode* newNode = (listNode*) malloc(sizeof(listNode));
+	newNode->key = key;
+
+	/* 첫 노드와 마지막 노드 사이에 newNode를 넣는 과정 */
+	  // 공백 리스트에서도 정상적으로 작동
+	newNode->rlink = h->rlink;
+	newNode->llink = h->llink;
+	h->rlink->llink = newNode;
+	h->llink->rlink = newNode;
+
+	/* 한 줄 더 추가: 헤드노드의 rlink가 가리키는 노드가 첫 노드 */
+	h->rlink = newNode;
 
 
-	return 1;
+	// return 1;
+	return 0;
 }
 
 /**
  * list의 첫번째 노드 삭제
  */
 int deleteFirst(listNode* h) {
+	/* 전처리 */
+	if (IsInitialized(h)) {
+		printf("Please initialize first and try again.\n");
+		return 1;
+	}
+
+	/* 공백 리스트라면, 지울 것 없음 */
+	if (IS_EMPTY(h)) {
+		printf("Nothing to delete.\n");
+		return 1;
+	}
+
 
 
 	return 1;
