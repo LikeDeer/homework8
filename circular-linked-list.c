@@ -71,17 +71,20 @@ int main()
 			break;
 		case 'i': case 'I':
 			printf("Your Key = ");
-			scanf("%d", &key);
+			// scanf("%d", &key);
+			if (Scanf(&key)) break;			// key에 정수가 아닌 입력값이 들어오면 수행 취소하도록 수정.
 			insertNode(headnode, key);
 			break;
 		case 'd': case 'D':
 			printf("Your Key = ");
-			scanf("%d", &key);
+			// scanf("%d", &key);
+			if (Scanf(&key)) break;			// key에 정수가 아닌 입력값이 들어오면 수행 취소하도록 수정.
 			deleteNode(headnode, key);
 			break;
 		case 'n': case 'N':
 			printf("Your Key = ");
-			scanf("%d", &key);
+			// scanf("%d", &key);
+			if (Scanf(&key)) break;			// key에 정수가 아닌 입력값이 들어오면 수행 취소하도록 수정.
 			insertLast(headnode, key);
 			break;
 		case 'e': case 'E':
@@ -89,7 +92,8 @@ int main()
 			break;
 		case 'f': case 'F':
 			printf("Your Key = ");
-			scanf("%d", &key);
+			// scanf("%d", &key);
+			if (Scanf(&key)) break;			// key에 정수가 아닌 입력값이 들어오면 수행 취소하도록 수정.
 			insertFirst(headnode, key);
 			break;
 		case 't': case 'T':
@@ -123,7 +127,7 @@ int initialize(listNode** h) {
 	(*h)->rlink = *h;							//  이전까지의 선형 리스트에서는
 	(*h)->llink = *h;							//  헤드노드라는 이름의 포인터로 첫 노드부터 이용했지만
 	(*h)->key = -9999;							//  원형 리스트에서는
-	return 1;									//  첫 노드가 될 수 있는 후보가, 정방향과 역방향이 구분되어, 두 개다.
+	return 1;									//  첫 노드가 될 수 있는 후보가, 정방향과 역방향으로 구분되어, 두 개다.
 }												//  때문에 헤드노드도 쌍방향의 원래 노드 형태를 빌리되,
 												//  그것은 데이터는 갖지 않는다.
 												//  주의할 것으로, 앞으로 첫 노드는 h가 아닌 h->rlink
@@ -248,16 +252,10 @@ int insertFirst(listNode* h, int key) {
 	listNode* newNode = (listNode*) malloc(sizeof(listNode));
 	newNode->key = key;
 
-	/* 첫 노드와 마지막 노드 사이에 newNode를 넣는 과정 */
-	  // 공백 리스트에서도 정상적으로 작동
 	newNode->rlink = h->rlink;
-	newNode->llink = h->llink;
+	newNode->llink = h;
 	h->rlink->llink = newNode;
-	h->llink->rlink = newNode;
-
-	/* 한 줄 더 추가: 헤드노드의 rlink가 가리키는 노드가 첫 노드 */
 	h->rlink = newNode;
-
 
 	// return 1;
 	return 0;
@@ -279,10 +277,13 @@ int deleteFirst(listNode* h) {
 		return 1;
 	}
 
+	h->rlink = h->rlink->rlink;
+	free(h->rlink->llink);
+	h->rlink->llink = h;
+	// 이를테면, deleteLast 와 데칼코마니
 
-
-	return 1;
-
+	// return 1;
+	return 0;
 }
 
 
@@ -290,7 +291,30 @@ int deleteFirst(listNode* h) {
  * 리스트의 링크를 역순으로 재 배치
  */
 int invertList(listNode* h) {
+	/* 전처리 */
+	if (IsInitialized(h)) {
+		printf("Please initialize first and try again.\n");
+		return 1;
+	}
 
+	/* 공백 리스트라면, 수행할 것 없음. */
+	if (IS_EMPTY(h)) {
+		printf("Nothing to invert.\n");
+		return 1;
+	}
+
+	// 모든 화살표의 방향이 반대가 되면 invert 된 것임.
+	// 즉, 모든 노드의 rlink, llink 를 교환한다.
+	listNode* p = h;
+	listNode* temp = NULL;
+	do
+	{
+		temp = p->rlink;
+		p->rlink = p->llink;
+		p->llink = temp;
+
+		p = p->llink;
+	} while (p != h);
 
 	return 0;
 }
@@ -299,6 +323,40 @@ int invertList(listNode* h) {
 
 /* 리스트를 검색하여, 입력받은 key보다 큰값이 나오는 노드 바로 앞에 삽입 */
 int insertNode(listNode* h, int key) {
+	/* 전처리 */
+	if (IsInitialized(h)) {
+		printf("Please initialize first and try again.\n");
+		return 1;
+	}
+
+	/* 공백 리스트라면, 첫 노드로 삽입 */
+	if (IS_EMPTY(h)) {
+		insertFirst(h, key);
+		return 0;
+	}
+
+	listNode* newNode = (listNode*) malloc(sizeof(listNode));
+	newNode->key = key;
+
+	listNode* searchKey = h->rlink;
+	while (searchKey != h) {
+		if (searchKey->key > key) {
+			newNode->rlink = searchKey;
+			newNode->llink = searchKey->llink;
+			searchKey->llink->rlink = newNode;
+			searchKey->llink = newNode;
+
+			return 0;
+		}
+		else
+			searchKey = searchKey->rlink;
+	}
+
+	// 마지막까지 더 큰 key의 노드를 발견하지 못하면, 마지막 노드로 삽입.
+	newNode->rlink = h;
+	newNode->llink = h->llink;
+	h->llink->rlink = newNode;
+	h->llink = newNode;
 
 	return 0;
 }
@@ -308,6 +366,29 @@ int insertNode(listNode* h, int key) {
  * list에서 key에 대한 노드 삭제
  */
 int deleteNode(listNode* h, int key) {
+	/* 전처리 */
+	if (IsInitialized(h)) {
+		printf("Please initialize first and try again.\n");
+		return 1;
+	}
+
+	/* 공백 리스트라면, 지울 것 없음 */
+	if (IS_EMPTY(h)) {
+		printf("Nothing to delete.\n");
+		return 1;
+	}
+
+	listNode* searchKey = h->rlink;
+	while (searchKey != h) {
+		if (searchKey->key == key) {
+			searchKey->rlink->llink = searchKey->llink;
+			searchKey = searchKey->rlink;
+			free(searchKey->llink->rlink);
+			searchKey->llink->rlink = searchKey;
+		}
+		else
+			searchKey = searchKey->rlink;
+	}
 
 	return 0;
 }
