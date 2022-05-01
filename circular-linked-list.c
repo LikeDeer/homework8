@@ -138,9 +138,9 @@ int freeList(listNode* h){
 
 	listNode *goodBye = NULL;
 
-	h->llink->rlink = NULL;			// circular-linked-list의 장점에 대한 개인적 의견:
-									//   마지막 노드를 먼저 건드려 놓을 수 있음.
-	while (h) {						// 마지막 노드까지 삭제되고
+	h->llink->rlink = NULL;			// 마지막 노드를 먼저 건드려 놓는다.
+
+	while (h) {						// 헤드노드부터 마지막 노드까지 삭제되고
 		goodBye = h;				//   h가 (이전)마지막 노드의 rlink, 즉 NULL을 이어받으면 종료.
 		h = h->rlink;
 		free(goodBye);
@@ -201,7 +201,11 @@ int insertLast(listNode* h, int key) {
 
 	listNode* newNode = (listNode*) malloc(sizeof(listNode));
 	newNode->key = key;
+	newNode->llink = NULL;
+	newNode->rlink = NULL;
 
+	/* 링크 설정. 마지막 노드의 rlink와
+		헤드노드의 llink가 newNode를 가리킨다. */
 	newNode->rlink = h;
 	newNode->llink = h->llink;
 	h->llink->rlink = newNode;
@@ -229,6 +233,8 @@ int deleteLast(listNode* h) {
 		return 1;
 	}
 
+	/* 헤드노드의 llink가 마지막 노드의 이전 노드를 가리키고,
+		그것의 rlink는 헤드노드를 가리킨다. */
 	h->llink = h->llink->llink;
 	free(h->llink->rlink);
 	h->llink->rlink = h;
@@ -251,11 +257,17 @@ int insertFirst(listNode* h, int key) {
 
 	listNode* newNode = (listNode*) malloc(sizeof(listNode));
 	newNode->key = key;
+	newNode->llink = NULL;
+	newNode->rlink = NULL;
 
+
+	/* 링크 설정. 첫 노드의 llink와
+		헤드노드의 rlink가 newNode를 가리킨다. */
 	newNode->rlink = h->rlink;
 	newNode->llink = h;
 	h->rlink->llink = newNode;
 	h->rlink = newNode;
+	// 이를테면, insertFirst와 데칼코마니(좌우 대칭)
 
 	// return 1;
 	return 0;
@@ -277,10 +289,12 @@ int deleteFirst(listNode* h) {
 		return 1;
 	}
 
+	/* 헤드노드의 rlink가 첫 노드의 이후 노드를 가리키고,
+		그것의 llink는 헤드노드를 가리킨다. */
 	h->rlink = h->rlink->rlink;
 	free(h->rlink->llink);
 	h->rlink->llink = h;
-	// 이를테면, deleteLast 와 데칼코마니
+	// 이를테면, deleteLast 와 데칼코마니(좌우 대칭)
 
 	// return 1;
 	return 0;
@@ -303,8 +317,8 @@ int invertList(listNode* h) {
 		return 1;
 	}
 
-	// 모든 화살표의 방향이 반대가 되면 invert 된 것임.
-	// 즉, 모든 노드의 rlink, llink 를 교환한다.
+	/* 모든 화살표의 방향이 반대가 되면 invert 된 것이다.
+		즉, 모든 노드의 rlink, llink 를 교환한다. */
 	listNode* p = h;
 	listNode* temp = NULL;
 	do
@@ -315,6 +329,7 @@ int invertList(listNode* h) {
 
 		p = p->llink;
 	} while (p != h);
+	// 헤드노드가 움직일 필요는 없다. 다만 그것의 rlink, llink도 교환이 이루어진다.
 
 	return 0;
 }
@@ -337,13 +352,17 @@ int insertNode(listNode* h, int key) {
 
 	listNode* newNode = (listNode*) malloc(sizeof(listNode));
 	newNode->key = key;
+	newNode->llink = NULL;
+	newNode->rlink = NULL;
+
+
 
 	listNode* searchKey = h->rlink;
-	while (searchKey != h) {
-		if (searchKey->key > key) {
-			newNode->rlink = searchKey;
-			newNode->llink = searchKey->llink;
-			searchKey->llink->rlink = newNode;
+	while (searchKey != h) {						// 한 바퀴 돌때 까지
+		if (searchKey->key > key) {					//  더 큰 key값을 가진 노드가 발견되면
+			newNode->rlink = searchKey;				//  그 노드의 llink와 그 이전 노드의 rlink가
+			newNode->llink = searchKey->llink;		//  newNode를 가리키게 하며 삽입.
+			searchKey->llink->rlink = newNode;		//  삽입이 이루어지면 리턴.
 			searchKey->llink = newNode;
 
 			return 0;
@@ -357,6 +376,11 @@ int insertNode(listNode* h, int key) {
 	newNode->llink = h->llink;
 	h->llink->rlink = newNode;
 	h->llink = newNode;
+
+	/* circular-linked-list 같은 순환 구조는, 모든 노드에서 구조적 상황이 같다.
+		예를 들어, 이전까지의 선형 구조는 첫 노드, 마지막 노드에서 구조가 특수했다.
+		때문에 특수한 경우의 수를 고려해야 했지만,
+		순환 구조는 특수한 상황이 적다고 가정하고 일반적인 알고리즘으로 문제를 해결할 수도 있다. */
 
 	return 0;
 }
@@ -379,10 +403,10 @@ int deleteNode(listNode* h, int key) {
 	}
 
 	listNode* searchKey = h->rlink;
-	while (searchKey != h) {
-		if (searchKey->key == key) {
-			searchKey->rlink->llink = searchKey->llink;
-			searchKey = searchKey->rlink;
+	while (searchKey != h) {								// 한 바퀴 돌때 까지,
+		if (searchKey->key == key) {						//  key를 갖고 있는 노드들을 제거하며,
+			searchKey->rlink->llink = searchKey->llink;		//  리턴하지 않고 계속 탐색
+			searchKey = searchKey->rlink;					//  key를 가진 모든 노드가 제거된다.
 			free(searchKey->llink->rlink);
 			searchKey->llink->rlink = searchKey;
 		}
